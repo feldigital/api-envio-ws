@@ -1,7 +1,5 @@
 import * as Baileys from "@whiskeysockets/baileys";
-
 import LeadExternal from "../../domain/lead-external.repository";
-
 //Silent mode
 import pino from "pino";
 
@@ -44,11 +42,20 @@ export class BaileysTransporter implements LeadExternal {
         auth: socketConfig.auth || state,
       });
       this.connection.ev.on("creds.update", saveCreds);
+      
+
       this.connection.ev.on("connection.update", (state) => {
         this.connectionState = state;
+
+        if (state.qr) {
+          console.log("⚠️ Escanea el QR para iniciar sesión");
+        }
+
         if (state.connection === "open") {
+          console.log("✅ Conectado a WhatsApp correctamente");
           this.onReady.forEach((cb) => cb(this.connection!));
         }
+/*
 
         if (state.connection != "close") return;
         if (this.isEnd) {
@@ -56,6 +63,23 @@ export class BaileysTransporter implements LeadExternal {
           return;
         }
         !this.isEnd && this.reconnect();
+*/
+if (state.connection === "close") {
+  console.log("❌ Conexión cerrada:", state.lastDisconnect?.error?.message);
+  const shouldReconnect =
+    (state.lastDisconnect?.error as any)?.output?.statusCode !== this.baileys.DisconnectReason.loggedOut;
+
+  if (!shouldReconnect || this.isEnd) {
+    console.log("Sesión cerrada o usuario desconectado. No se reconecta.");
+    return;
+  }
+
+  console.log("Reconectando...");
+  this.reconnect();
+}
+
+
+
       });
     } catch (error) {
       console.error(error);
@@ -83,8 +107,11 @@ export class BaileysTransporter implements LeadExternal {
       const response = await this.connection?.sendMessage(phone + "@c.us", {
         text: message,
       });
+
+      console.log("📤 Enviando a:", phone + "@c.us", "Mensaje:", message);
       return Promise.resolve(response);
     } catch (error) {
+      console.error("❌ Error al enviar mensaje:", error);
       return Promise.reject(error);
     }
   }

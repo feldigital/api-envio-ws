@@ -34,7 +34,7 @@ export class BaileysTransporter implements LeadExternal {
       const { saveCreds, state } = await this.getAuth();
 
       this.connection = this.baileys.makeWASocket({
-        printQRInTerminal: true,
+       // printQRInTerminal: true,
         browser: this.baileys.Browsers.macOS("Desktop"),
         //@ts-ignore
         logger: pino({ level: "silent" }),
@@ -47,7 +47,9 @@ export class BaileysTransporter implements LeadExternal {
       this.connection.ev.on("connection.update", (state) => {
         this.connectionState = state;
 
-        if (state.qr) {
+     if (state.qr) {
+          const qrcode = require('qrcode-terminal');
+          qrcode.generate(state.qr, { small: true });
           console.log("⚠️ Escanea el QR para iniciar sesión");
         }
 
